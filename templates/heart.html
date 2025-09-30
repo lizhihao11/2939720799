@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红色爱心+流星背景+纪念日文字</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; cursor: pointer; }
+        canvas { display: block; }
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; color: #fff; font-size: 28px;
+            cursor: pointer; z-index: 200; transition: all 0.3s; user-select: none;
+        }
+        .back-arrow:hover { opacity: 0.8; transform: scale(1.1); }
+        .anniversary-text {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 64px; font-weight: bold;
+            text-shadow: 0 0 15px rgba(255,255,255,0.9), 0 0 30px rgba(255,255,255,0.7), 0 0 45px rgba(255,255,255,0.5);
+            z-index: 90; opacity: 0;
+            transition: opacity 0.5s ease, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1), top 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            user-select: none;
+        }
+        .anniversary-text.show { opacity: 1; top: 40px; animation: shake 1s ease-in-out; }
+        .memorial-text {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #fff; font-size: 32px; font-weight: bold; text-align: center; line-height: 1.8;
+            text-shadow: 0 0 10px rgba(255,0,0,0.9), 0 0 20px rgba(255,0,0,0.7), 0 0 30px rgba(255,0,0,0.5), 0 0 40px rgba(255,0,0,0.3);
+            z-index: 95; opacity: 0; transition: opacity 1s ease, transform 1s ease;
+            user-select: none; pointer-events: none;
+        }
+        .memorial-text.show { opacity: 1; transform: translate(-50%, -55%); }
+        /* 爱心内部文字样式 - 炫彩发光效果 */
+        .heart-inner-text {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 80px; font-weight: bold;
+            background: linear-gradient(
+                135deg,
+                #ff0000, #ff7f00, #ffff00, #00ff00,
+                #00ffff, #0000ff, #8b00ff, #ff00ff
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            background-size: 400% 400%;
+            animation: shine 2s ease-in-out infinite, glow 2s ease-in-out infinite alternate;
+            z-index: 85; opacity: 1;
+            user-select: none; pointer-events: none;
+        }
+        @keyframes shine {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes glow {
+            from {
+                text-shadow:
+                    0 0 10px rgba(255,255,255,0.8),
+                    0 0 20px rgba(255,255,255,0.6);
+            }
+            to {
+                text-shadow:
+                    0 0 15px rgba(255,255,255,1),
+                    0 0 30px rgba(255,255,255,0.8),
+                    0 0 45px rgba(255,255,255,0.6);
+            }
+        }
+        @keyframes shake {
+            0%,100%{transform:translateX(-50%) rotate(0)}
+            10%{transform:translateX(-52%) rotate(-2deg)}
+            20%{transform:translateX(-48%) rotate(2deg)}
+            30%{transform:translateX(-51%) rotate(-1.5deg)}
+            40%{transform:translateX(-49%) rotate(1.5deg)}
+            50%{transform:translateX(-50%) rotate(0)}
+            60%{transform:translateX(-51%) rotate(-1deg)}
+            70%{transform:translateX(-49%) rotate(1deg)}
+            80%{transform:translateX(-50.5%) rotate(-0.5deg)}
+            90%{transform:translateX(-49.5%) rotate(0.5deg)}
+        }
+        .pigeon {
+            position: fixed; bottom: 80px; right: 20px; width: 120px; height: auto;
+            display: none; z-index: 98; user-select: none; cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .pigeon:hover { transform: translateY(-5px); }
+        .pigeon-text {
+            position: fixed; bottom: 60px; right: 20px; color: #fff; font-size: 18px;
+            font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.8);
+            z-index: 98; display: none; user-select: none; text-align: center; width: 120px;
+        }
+        /* 信封容器 - 扩大尺寸，确保内容容纳 */
+        .envelope-container {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 950px; /* 扩大宽度 */
+            height: 750px; /* 扩大高度 */
+            z-index: 80; opacity: 0; pointer-events: none;
+            transition: opacity 1s ease;
+            padding: 30px; /* 调整内边距，避免文字贴边 */
+        }
+        .envelope-container.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* 信件内容样式 - 压缩间距，居中标题，确保无滚动 */
+        .letter-content {
+            color: #fff;
+            font-size: 22px; /* 微调字体大小，平衡可读性与空间 */
+            line-height: 1.5; /* 压缩行高（原1.8→1.5），减少垂直占用 */
+            height: 100%;
+            overflow-y: hidden; /* 强制隐藏滚动条，确保内容完全显示 */
+            padding: 30px 50px;
+            background-color: transparent;
+            border-radius: 5px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.9),
+                         0 0 15px rgba(255,255,255,0.7),
+                         0 0 25px rgba(255,255,255,0.5);
+        }
+        /* 信件标题样式 - 居中显示 */
+        .letter-title {
+            text-align: center; /* 标题居中 */
+            font-size: 36px; /* 标题放大，突出层级 */
+            font-weight: bold;
+            margin: 0 0 30px 0; /* 标题底部间距，优化排版 */
+            text-decoration: underline; /* 下划线强调标题 */
+        }
+        /* 信件段落样式 - 压缩段落间距 */
+        .letter-paragraph {
+            margin: 12px 0; /* 压缩段落上下间距（原20px→12px） */
+            text-align: left;
+            text-indent: 2em; /* 关键：设置首行缩进 2 个字符宽度 */
+        }
+        .letter-paragraph.no-indent {
+            text-indent: 0;
+        }
+        /* 信件结尾署名样式 */
+        .letter-signature {
+            margin-top: 15px; /* 压缩署名顶部间距（原60px→35px） */
+            text-align: right;
+            font-weight: bold;
+        }
+        /* 自定义滚动条（保留样式，实际已隐藏） */
+        .letter-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .letter-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .letter-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 0, 0, 0.5);
+            border-radius: 4px;
+        }
+        .letter-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="back-arrow">←</div>
+    <div class="anniversary-text" id="anniversaryText">四周年纪念日</div>
+    <div class="memorial-text" id="memorialText">
+        携手共度1461天<br>
+        余生只想牵你的手<br>
+        从天光乍破走到暮洁白头
+    </div>
+    <!-- 爱心内部文字 -->
+    <div class="heart-inner-text" id="heartInnerText">怡宝</div>
+    <img class="pigeon" id="pigeon" src="/static/messenger.png" alt="鸽子">
+    <div class="pigeon-text" id="pigeonText">豪豪的情书</div>
+    <!-- 信封容器 - 包含信件内容区域 -->
+    <div class="envelope-container" id="envelopeContainer">
+        <div class="letter-content" id="letterContent">
+            <!-- 1. 添加居中标题“我最爱的宝” -->
+            <div class="letter-title">我最爱的宝</div>
+
+            <!-- 2. 压缩段落/行间距，确保内容无滚动 -->
+            <div class="letter-paragraph no-indent">亲爱的怡宝：</div>
+
+            <div class="letter-paragraph">嘻嘻，四周年快乐！</div>
+
+            <div class="letter-paragraph">我也不知道该送点什么好，所以最近上班期间做了个程序，想给你一个惊喜，嘻嘻~</div>
+
+            <div class="letter-paragraph">我们于2021年9月30号开始步入爱情的长廊，至今已经一起度过了1461天啦。在这个期间我们有过开心的时候，也有过吵架的时候，但这都不会影响我们之间的爱情（至少在我看来是这样的）。在我的思想里，我是想把一切好的东西都给你，所以我平常对自己都是扣扣嗖嗖的。所以宝宝在我的爱养下已经变成小飞猪了。</div>
+
+            <div class="letter-paragraph">在最近我们发生了很多次吵架，甚至还有几次吵得很激烈。我想要告诉宝宝，不管我怎么生气，我都不会放弃宝宝的，那只是我吵架后所剩的最后一点面子了（我是一个倔强的宝宝）。但是宝宝你也是一个倔驴，也不知道来哄一哄我，哈哈哈哈哈。</div>
+
+            <div class="letter-paragraph">其实我想了很久，我们已经一起度过了四年，今天是我们的四周年纪念日。我们生活在一起，一起去适应双方，一起去准备未来。生活上我们可能没有以前那样的激情了，但是我还是在想方设法地让宝宝开心。</div>
+
+            <div class="letter-paragraph">总之我相信，我一定可以跟宝宝一起走下去的，嘻嘻。</div>
+
+            <div class="letter-signature">
+                2025年9月30号<br>
+                爱你的豪豪
+            </div>
+        </div>
+    </div>
+    <canvas id="heartCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        const aText = document.getElementById('anniversaryText');
+        const mText = document.getElementById('memorialText');
+        const heartInnerText = document.getElementById('heartInnerText');
+        const pigeon = document.getElementById('pigeon');
+        const pText = document.getElementById('pigeonText');
+        const envelopeContainer = document.getElementById('envelopeContainer');
+        const letterContent = document.getElementById('letterContent');
+        let isTextExploded = false;
+        let envelopeParticles = []; // 信封粒子数组
+
+        // 调整画布大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 常量定义
+        const C_X = () => canvas.width / 2;
+        const C_Y = () => canvas.height / 2;
+        const H_Y_OFF = -90;
+        const IMG_ENLARGE = 28;
+        const H_COLOR = "#FF0000";
+        const O_COLOR = "#FF5555";
+        const S_COLORS = ["#ffffff", "#f0f0f0", "#e0e0e0", "#d0d0d0"];
+        const HEART_INNER_TEXT_COLOR = "#FF99BB"; // 爱心内部文字粒子颜色
+        const ENVELOPE_COLOR = "#CC0000"; // 信封边框颜色
+        const A_SPEED = 1.2; // 爱心动画速度
+        const GRAVITY = 0.05; // 减小重力，让粒子更稳定
+        const E_FORCE = 8; // 减小爆炸力度
+        const E_DAMP = 0.99; // 增大阻尼，让粒子运动更平缓
+        const E_THRESH = 0.2;
+        const M_INTERVAL = 1500;
+        const M_LENGTH = 120;
+        const M_SPEED = [8, 18];
+        const M_ALPHA = [0.6, 1.0];
+        const R_DELAY = 300;
+        const O_COUNT = 6000;
+        const S_COUNT = 10000;
+        const PARTICLE_CHECK_DELAY = 50; // 更频繁地检查粒子状态
+
+        // 爱心形状生成函数
+        function heartFunc(t, s = IMG_ENLARGE) {
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            return { x: x * s + C_X(), y: y * s + C_Y() + H_Y_OFF };
+        }
+
+        // 粒子扩散函数
+        function scatterIn(x, y, b = 0.15) {
+            const rx = -b * Math.log(Math.random());
+            const ry = -b * Math.log(Math.random());
+            return { x: x - rx * (x - C_X()), y: y - ry * (y - (C_Y() + H_Y_OFF)) };
+        }
+
+        function scatterOut(x, y, b = 0.3) {
+            const rx = b * Math.log(Math.random()) * (Math.random() > 0.5 ? 1 : -1);
+            const ry = b * Math.log(Math.random()) * (Math.random() > 0.5 ? 1 : -1);
+            return { x: x + rx * (x - C_X()), y: y + ry * (y - (C_Y() + H_Y_OFF)) };
+        }
+
+        function shrink(x, y, r) {
+            const cY = C_Y() + H_Y_OFF;
+            const f = -1 / Math.pow(Math.pow(x - C_X(), 2) + Math.pow(y - cY, 2), 0.6);
+            return { x: x - r * f * (x - C_X()), y: y - r * f * (y - cY) };
+        }
+
+        function curve(p) { return 2 * (2 * Math.sin(2 * p)) / (2 * Math.PI); }
+
+        // 星星类
+        class Star {
+            constructor() {
+                this.reset();
+                this.highlightChance = Math.random() * 0.001;
+                this.isHighlighted = false;
+                this.highlightDuration = 0;
+                this.maxHighlightDuration = 30 + Math.random() * 50;
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.s = Math.random() * 2 + 1;
+                this.b = Math.random() * 0.5 + 0.2;
+                this.sp = Math.random() * 0.005 + 0.002;
+                this.p = Math.random() * Math.PI * 2;
+                this.c = S_COLORS[Math.floor(Math.random() * S_COLORS.length)];
+            }
+            update() {
+                this.p += this.sp;
+                this.baseBrightness = (Math.sin(this.p) + 1) / 2 * 0.5 + 0.2;
+
+                if (!this.isHighlighted && Math.random() < this.highlightChance) {
+                    this.isHighlighted = true;
+                    this.highlightDuration = 0;
+                }
+
+                if (this.isHighlighted) {
+                    this.highlightDuration++;
+                    if (this.highlightDuration < this.maxHighlightDuration * 0.3) {
+                        this.b = Math.min(1, this.b + 0.1);
+                    } else {
+                        this.b = Math.max(this.baseBrightness, this.b - 0.02);
+                    }
+
+                    if (this.highlightDuration >= this.maxHighlightDuration) {
+                        this.isHighlighted = false;
+                        this.b = this.baseBrightness;
+                    }
+                } else {
+                    this.b = this.baseBrightness;
+                }
+            }
+            draw() {
+                if (this.b > 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.s * (this.isHighlighted ? 1.5 : 1), 0, Math.PI * 2);
+                    ctx.fillStyle = this.isHighlighted ? "#ffffff" : this.c;
+                    ctx.globalAlpha = this.b;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+
+                    if (this.isHighlighted && this.b > 0.8) {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.s * 2.5, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // 流星类
+        class Meteor {
+            constructor() {
+                this.init();
+                this.trailWidth = 3;
+            }
+            init() {
+                this.x = Math.random() * canvas.width * 1.5 - canvas.width * 0.5;
+                this.y = -50;
+                this.a = Math.PI / 4 + Math.random() * Math.PI / 12;
+                this.s = M_SPEED[0] + Math.random() * (M_SPEED[1] - M_SPEED[0]);
+                this.alpha = M_ALPHA[0] + Math.random() * (M_ALPHA[1] - M_ALPHA[0]);
+                this.c = `rgba(255, ${Math.floor(220 + Math.random() * 35)}, ${Math.floor(120 + Math.random() * 35)}, ${this.alpha})`;
+                this.headSize = 3 + Math.random() * 2;
+            }
+            update() {
+                this.x += Math.cos(this.a) * this.s;
+                this.y += Math.sin(this.a) * this.s;
+                if (this.x > canvas.width + 100 || this.y > canvas.height + 100) {
+                    this.init();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.headSize, 0, Math.PI * 2);
+                ctx.fillStyle = this.c;
+                ctx.fill();
+
+                const tx = this.x - Math.cos(this.a) * M_LENGTH;
+                const ty = this.y - Math.sin(this.a) * M_LENGTH;
+                const g = ctx.createLinearGradient(this.x, this.y, tx, ty);
+                g.addColorStop(0, this.c);
+                g.addColorStop(0.3, `rgba(255, 255, 255, ${this.alpha * 0.8})`);
+                g.addColorStop(1, `rgba(255, 255, 255, 0)`);
+
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(tx, ty);
+                ctx.lineWidth = this.trailWidth;
+                ctx.strokeStyle = g;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // 信封粒子类 - 常驻粒子效果
+        class EnvelopeParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // 随机方向和速度，让粒子在周围浮动
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.3 + Math.random() * 0.7; // 较慢的速度
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.size = 1 + Math.random() * 2; // 粒子大小
+                this.alpha = 0.7 + Math.random() * 0.3; // 保持较高透明度
+                this.life = Infinity; // 无限生命周期，不会消失
+                this.color = ENVELOPE_COLOR;
+                this.gravity = 0; // 无重力影响
+                this.damp = 1; // 无阻尼，保持速度
+                this.oscillationFactor = 0.03 + Math.random() * 0.05; // 振荡因子
+                this.oscillationPhase = Math.random() * Math.PI * 2; // 振荡相位
+            }
+
+            update() {
+                // 让粒子做微小的振荡运动，而不是飞散
+                this.oscillationPhase += this.oscillationFactor;
+                this.x += Math.cos(this.oscillationPhase) * this.vx;
+                this.y += Math.sin(this.oscillationPhase) * this.vy;
+
+                // 保持粒子在框周围，不远离
+                const width = 950;  // 与扩大后的信封宽度保持一致
+                const height = 750; // 与扩大后的信封高度保持一致
+                const maxDist = 80; // 最大距离限制
+
+                // 计算粒子到框中心的距离
+                const centerX = C_X();
+                const centerY = C_Y();
+                const dist = Math.sqrt(Math.pow(this.x - centerX, 2) + Math.pow(this.y - centerY, 2));
+
+                // 如果粒子远离框，拉回一些
+                if (dist > (Math.max(width, height) / 2 + maxDist)) {
+                    const angle = Math.atan2(this.y - centerY, this.x - centerX);
+                    this.x -= Math.cos(angle) * 0.5;
+                    this.y -= Math.sin(angle) * 0.5;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(204, 0, 0, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isDead() {
+                return false; // 粒子永远不会消失
+            }
+        }
+
+        // 爱心粒子类
+        class HParticle {
+            constructor(x, y, s, o = false, isInnerText = false) {
+                this.ix = x; this.iy = y; this.is = s; this.o = o;
+                this.isInnerText = isInnerText; // 是否为爱心内部文字粒子
+                this.reset();
+            }
+            reset() {
+                this.x = this.ix; this.y = this.iy; this.s = this.is;
+                this.vx = 0; this.vy = 0; this.e = false;
+                this.a = this.o ? 0.7 : 1;
+                this.f = false; this.ff = false;
+            }
+            startFade() { this.ff = true; this.fp = 0; this.fs = 0.02; }
+            updateExplode() {
+                if (this.e && !this.f && !this.ff) {
+                    this.x += this.vx; this.y += this.vy;
+                    this.vx *= E_DAMP; this.vy *= E_DAMP;
+                    if (Math.abs(this.vx) < E_THRESH && Math.abs(this.vy) < E_THRESH) {
+                        this.f = true;
+                    }
+                }
+            }
+            updateFall() {
+                if (this.f && !this.ff) {
+                    this.vy += GRAVITY;
+                    this.y += this.vy;
+                    this.a -= this.o ? 0.01 : 0.008;
+                    if (this.y > canvas.height + 50 || this.y < -50 || this.x < -50 || this.x > canvas.width + 50) {
+                        this.a = 0; // 超出屏幕后完全透明
+                    }
+                }
+            }
+            updateFade() {
+                if (this.ff) {
+                    this.fp += this.fs;
+                    this.a = (1 - this.fp) * (this.o ? 0.7 : 1);
+                    if (this.fp >= 1) {
+                        this.a = 0;
+                        this.ff = false;
+                    }
+                }
+            }
+            update() {
+                this.updateExplode();
+                this.updateFall();
+                this.updateFade();
+            }
+            draw() {
+                if (this.a > 0) {
+                    ctx.fillStyle = this.isInnerText ? HEART_INNER_TEXT_COLOR : (this.o ? O_COLOR : H_COLOR);
+                    ctx.globalAlpha = this.a;
+                    ctx.fillRect(this.x, this.y, this.s, this.s);
+                    ctx.globalAlpha = 1;
+                }
+            }
+            startExplode() {
+                this.e = true;
+                const cX = C_X(), cY = C_Y() + H_Y_OFF;
+                // 计算从中心到粒子位置的角度，实现向四周炸开
+                const angle = Math.atan2(this.iy - cY, this.ix - cX) + (Math.random() - 0.5) * 0.5;
+                const force = E_FORCE * (0.7 + Math.random() * 0.6); // 随机力度，增加扩散多样性
+                this.vx = Math.cos(angle) * force;
+                this.vy = Math.sin(angle) * force;
+            }
+            startExplodeFromText(cX, cY) {
+                this.e = true;
+                // 从文字中心向四周炸开
+                const angle = Math.atan2(this.iy - cY, this.ix - cX) + (Math.random() - 0.5) * 0.3;
+                const force = E_FORCE * (0.8 + Math.random() * 0.6);
+                this.vx = Math.cos(angle) * force;
+                this.vy = Math.sin(angle) * force;
+            }
+            startFall(d) {
+                // 控制爆炸同步性，减少分割感
+                const df = (canvas.height - this.iy) * d * 0.15 + Math.random() * 200;
+                setTimeout(() => this.startExplode(), df);
+            }
+            isGone() {
+                return this.a <= 0 || this.y > canvas.height + 50 || this.y < -50 || this.x < -50 || this.x > canvas.width + 50;
+            }
+        }
+
+        // 屏幕粒子类
+        class SParticle {
+            constructor(x, y, c) {
+                this.x = x; this.y = y;
+                this.c = c || `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`;
+                this.s = Math.random() * 3 + 1;
+                this.vx = (Math.random() - 0.5) * E_FORCE * 1.5;
+                this.vy = (Math.random() - 0.5) * E_FORCE * 1.5;
+                this.a = 1;
+                this.g = GRAVITY * 0.5;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.vy += this.g;
+                this.vx *= E_DAMP; this.vy *= E_DAMP;
+                this.a -= 0.005;
+            }
+            draw() {
+                if (this.a > 0) {
+                    ctx.fillStyle = this.c;
+                    ctx.globalAlpha = this.a;
+                    ctx.fillRect(this.x, this.y, this.s, this.s);
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+
+        // 爱心类
+        class Heart {
+            constructor(gf = 40) {
+                this.ps = new Set(); this.edp = new Set(); this.cdp = new Set(); this.op = new Set();
+                this.ap = {}; this.p = []; this.sp = [];
+                this.se = false; this.gf = gf; this.t = false;
+                this.d = 0.008;
+                this.f = 0; this.ms = false; this.r = false;
+                this.build(4000);
+                for (let i = 0; i < gf; i++) this.calc(i);
+                this.particleCheckInterval = null;
+                // 状态说明：0-初始爱心；1-爱心炸开中；2-显示四周年；3-显示三句话；4-鸽子消散中；5-显示信封
+                this.animationState = 0;
+            }
+            build(n) {
+                // 生成爱心点
+                for (let i = 0; i < n; i++) {
+                    const { x, y } = heartFunc(Math.random() * 2 * Math.PI);
+                    this.ps.add(`${x},${y}`);
+                }
+                const pl = Array.from(this.ps);
+
+                // 边缘扩散点
+                pl.forEach(p => {
+                    const [x, y] = p.split(',').map(Number);
+                    for (let i = 0; i < 3; i++) {
+                        const { x: nx, y: ny } = scatterIn(x, y, 0.05);
+                        this.edp.add(`${nx},${ny}`);
+                    }
+                });
+
+                // 中心扩散点
+                for (let i = 0; i < 6000; i++) {
+                    const p = pl[Math.floor(Math.random() * pl.length)];
+                    const [x, y] = p.split(',').map(Number);
+                    const { x: nx, y: ny } = scatterIn(x, y, 0.17);
+                    this.cdp.add(`${nx},${ny}`);
+                }
+
+                // 外围粒子点
+                for (let i = 0; i < O_COUNT; i++) {
+                    const { x, y } = heartFunc(Math.random() * 2 * Math.PI, IMG_ENLARGE + 8);
+                    const { x: nx, y: ny } = scatterOut(x, y, 0.2);
+                    this.op.add(`${nx},${ny}`);
+                }
+
+                // 创建内部粒子
+                [this.ps, this.edp, this.cdp].forEach(points => {
+                    points.forEach(p => {
+                        const [x, y] = p.split(',').map(Number);
+                        const s = points === this.ps ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 2) + 1;
+                        this.p.push(new HParticle(x, y, s, false));
+                    });
+                });
+
+                // 创建外围粒子
+                this.op.forEach(p => {
+                    const [x, y] = p.split(',').map(Number);
+                    const s = Math.floor(Math.random() * 2) + 1;
+                    this.p.push(new HParticle(x, y, s, true));
+                });
+            }
+            calcPos(x, y, r) {
+                const cY = C_Y() + H_Y_OFF;
+                const f = 1 / Math.pow(Math.pow(x - C_X(), 2) + Math.pow(y - cY, 2), 0.520);
+                return {
+                    x: x - r * f * (x - C_X()) + (Math.random() > 0.5 ? 1 : -1) * Math.random(),
+                    y: y - r * f * (y - cY) + (Math.random() > 0.5 ? 1 : -1) * Math.random()
+                };
+            }
+            calc(f) {
+                const r = 10 * curve(f / 20 * Math.PI);
+                const hr = Math.floor(6 + 8 * (1 + curve(f / 20 * Math.PI)));
+                const hn = Math.floor(6000 + 8000 * Math.pow(Math.abs(curve(f / 20 * Math.PI)), 2));
+                const ap = [];
+                const hp = new Set();
+
+                // 爱心光晕点
+                for (let i = 0; i < hn; i++) {
+                    const { x, y } = heartFunc(Math.random() * 2 * Math.PI, IMG_ENLARGE - 5);
+                    const s = shrink(x, y, hr);
+                    const k = `${Math.round(s.x)},${Math.round(s.y)}`;
+                    if (!hp.has(k)) {
+                        hp.add(k);
+                        ap.push({
+                            x: s.x + (Math.random() - 0.5) * 36,
+                            y: s.y + (Math.random() - 0.5) * 36,
+                            size: [1, 2, 2][Math.floor(Math.random() * 3)]
+                        });
+                    }
+                }
+
+                // 添加内部点
+                [this.ps, this.edp, this.cdp].forEach(points => {
+                    points.forEach(p => {
+                        const [x, y] = p.split(',').map(Number);
+                        const { x: nx, y: ny } = this.calcPos(x, y, r);
+                        const s = points === this.ps ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 2) + 1;
+                        ap.push({ x: nx, y: ny, size: s, isOuter: false });
+                    });
+                });
+
+                // 添加外围点
+                this.op.forEach(p => {
+                    const [x, y] = p.split(',').map(Number);
+                    const { x: nx, y: ny } = this.calcPos(x, y, r * 0.8);
+                    ap.push({ x: nx, y: ny, size: Math.floor(Math.random() * 2) + 1, isOuter: true });
+                });
+
+                this.ap[f] = ap;
+            }
+
+            // 检查所有粒子是否都已消失
+            checkAllParticlesGone() {
+                return this.p.every(particle => particle.isGone());
+            }
+
+            triggerFall() {
+                // 只有在初始状态才能触发炸开
+                if (this.animationState !== 0 || this.r || this.se || isTextExploded) return;
+
+                this.animationState = 1; // 进入炸开状态
+                this.t = true;
+
+                // 添加爱心内部文字的粒子
+                this.addHeartInnerTextParticles();
+                // 隐藏原始文字
+                heartInnerText.style.opacity = 0;
+
+                // 清除之前的检查定时器
+                if (this.particleCheckInterval) {
+                    clearInterval(this.particleCheckInterval);
+                }
+
+                // 启动粒子检查定时器，等待所有粒子消失后显示文字
+                this.particleCheckInterval = setInterval(() => {
+                    if (this.checkAllParticlesGone()) {
+                        clearInterval(this.particleCheckInterval);
+                        this.animationState = 2; // 进入显示四周年状态
+                        aText.classList.add('show');
+
+                        // 延迟显示三句话，确保步骤正确
+                        setTimeout(() => {
+                            this.animationState = 3; // 进入显示三句话状态
+                            this.triggerMText();
+                        }, 1500);
+                    }
+                }, PARTICLE_CHECK_DELAY);
+
+                this.p.forEach(p => p.startFall(this.d));
+            }
+
+            // 添加爱心内部文字的粒子
+            addHeartInnerTextParticles() {
+                const rect = heartInnerText.getBoundingClientRect();
+                const cX = rect.left + rect.width / 2;
+                const cY = rect.top + rect.height / 2;
+
+                // 生成更多文字粒子，使其效果更明显
+                for (let i = 0; i < 200; i++) {
+                    const x = rect.left + Math.random() * rect.width;
+                    const y = rect.top + Math.random() * rect.height;
+                    const size = Math.floor(Math.random() * 3) + 1;
+                    const p = new HParticle(x, y, size, false, true);
+                    this.p.push(p);
+                    p.startExplodeFromText(cX, cY);
+                }
+            }
+
+            triggerMText() {
+                if (this.animationState !== 3) return;
+                this.ms = true;
+                mText.classList.add('show');
+
+                setTimeout(() => {
+                    if (this.animationState === 3 && !this.r && !this.se && !isTextExploded) {
+                        pigeon.style.display = 'block';
+                        pText.style.display = 'block';
+                    }
+                }, 1000);
+            }
+
+            triggerSExplosion() {
+                if (this.se || this.r || isTextExploded) return;
+                this.se = true;
+                this.sp = [];
+                aText.style.display = 'none';
+                mText.style.display = 'none';
+                heartInnerText.style.display = 'none';
+                pigeon.style.display = 'none';
+                pText.style.display = 'none';
+
+                const cs = [H_COLOR, O_COLOR, "#ffffff", "#ff8888", "#ffbbbb"];
+                for (let i = 0; i < S_COUNT; i++) {
+                    this.sp.push(new SParticle(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height,
+                        cs[Math.floor(Math.random() * cs.length)]
+                    ));
+                }
+
+                setTimeout(() => { if (!isTextExploded) this.reset(); }, 5000);
+            }
+
+            reset() {
+                // 重置所有状态和元素
+                if (this.r || isTextExploded) return;
+
+                if (this.particleCheckInterval) {
+                    clearInterval(this.particleCheckInterval);
+                    this.particleCheckInterval = null;
+                }
+
+                this.r = true;
+                this.se = false;
+                this.p.forEach(p => { if (this.t) p.startFade(); });
+                this.sp = [];
+
+                aText.style.opacity = "0";
+                mText.style.opacity = "0";
+                heartInnerText.style.opacity = "1";
+                pigeon.style.display = 'none';
+                pText.style.display = 'none';
+                envelopeContainer.classList.remove('show');
+                envelopeParticles = [];
+
+                setTimeout(() => {
+                    this.t = false; this.ms = false; this.f = 0; this.r = false;
+                    this.animationState = 0; // 重置为初始状态
+                    aText.classList.remove('show');
+                    aText.style.opacity = "";
+                    aText.style.display = 'block';
+                    mText.classList.remove('show');
+                    mText.style.opacity = "";
+                    mText.style.display = 'block';
+                    this.p.forEach(p => p.reset());
+                }, R_DELAY);
+            }
+
+            triggerTExplosion() {
+                if (isTextExploded || this.r || this.se || this.animationState !== 3) return;
+
+                this.animationState = 4; // 进入鸽子消散状态
+                isTextExploded = true;
+
+                if (this.particleCheckInterval) {
+                    clearInterval(this.particleCheckInterval);
+                    this.particleCheckInterval = null;
+                }
+
+                pigeon.style.display = 'none';
+                pText.style.display = 'none';
+
+                // 四周年文字粒子
+                const ar = aText.getBoundingClientRect();
+                const acX = ar.left + ar.width / 2;
+                const acY = ar.top + ar.height / 2;
+                for (let i = 0; i < 150; i++) {
+                    const x = ar.left + Math.random() * ar.width;
+                    const y = ar.top + Math.random() * ar.height;
+                    const p = new HParticle(x, y, Math.floor(Math.random() * 3) + 1, false);
+                    this.p.push(p);
+                    p.startExplodeFromText(acX, acY);
+                }
+
+                // 纪念文字粒子
+                const mr = mText.getBoundingClientRect();
+                const mcX = mr.left + mr.width / 2;
+                const mcY = mr.top + mr.height / 2;
+                for (let i = 0; i < 300; i++) {
+                    const x = mr.left + Math.random() * mr.width;
+                    const y = mr.top + Math.random() * mr.height;
+                    const p = new HParticle(x, y, Math.floor(Math.random() * 3) + 1, false);
+                    this.p.push(p);
+                    p.startExplodeFromText(mcX, mcY);
+                }
+
+                aText.style.opacity = 0;
+                mText.style.opacity = 0;
+
+                // 文字消散后显示信封
+                setTimeout(() => {
+                    aText.style.display = 'none';
+                    mText.style.display = 'none';
+
+                    // 等待所有粒子消失
+                    setTimeout(() => {
+                        this.animationState = 5; // 进入显示信封状态
+                        this.showEnvelope();
+                    }, 1000);
+                }, 300);
+            }
+
+            // 显示信封并创建粒子效果
+            showEnvelope() {
+                envelopeContainer.classList.add('show');
+                // 初始化信封粒子
+                this.createEnvelopeParticles();
+                // 启动粒子动画循环
+                this.animateEnvelopeParticles();
+            }
+
+            // 创建信封边框的粒子 - 更多粒子数量
+            createEnvelopeParticles() {
+                const width = 950; // 与扩大后的信封宽度保持一致
+                const height = 750; // 与扩大后的信封高度保持一致
+                const envelopeX = C_X() - width / 2; // 信封左上角X
+                const envelopeY = C_Y() - height / 2; // 信封左上角Y
+                const particleDensity = 1; // 更密集的粒子
+
+                // 上边线粒子
+                for (let x = 0; x < width; x += particleDensity) {
+                    envelopeParticles.push(new EnvelopeParticle(envelopeX + x, envelopeY));
+                }
+
+                // 下边线粒子
+                for (let x = 0; x < width; x += particleDensity) {
+                    envelopeParticles.push(new EnvelopeParticle(envelopeX + x, envelopeY + height));
+                }
+
+                // 左边线粒子
+                for (let y = 0; y < height; y += particleDensity) {
+                    envelopeParticles.push(new EnvelopeParticle(envelopeX, envelopeY + y));
+                }
+
+                // 右边线粒子
+                for (let y = 0; y < height; y += particleDensity) {
+                    envelopeParticles.push(new EnvelopeParticle(envelopeX + width, envelopeY + y));
+                }
+            }
+
+            // 信封粒子动画循环
+            animateEnvelopeParticles() {
+                if (this.animationState !== 5) return;
+
+                // 更新所有粒子
+                envelopeParticles.forEach(p => p.update());
+
+                // 继续动画循环
+                requestAnimationFrame(() => this.animateEnvelopeParticles());
+            }
+
+            render() {
+                if (this.se) {
+                    this.sp.forEach(p => { p.update(); p.draw(); });
+                } else if (this.r) {
+                    this.p.forEach(p => { p.update(); p.draw(); });
+                } else if (!this.t && !isTextExploded) {
+                    const ps = this.ap[Math.floor(this.f) % this.gf];
+                    ps.forEach(({ x, y, size, isOuter }) => {
+                        ctx.fillStyle = isOuter ? O_COLOR : H_COLOR;
+                        ctx.fillRect(x, y, size, size);
+                    });
+                    this.f += A_SPEED;
+                } else {
+                    this.p.forEach(p => { p.update(); p.draw(); });
+                }
+
+                // 绘制信封和粒子
+                if (this.animationState === 5) {
+                    envelopeParticles.forEach(p => p.draw());
+                }
+            }
+        }
+
+        // 点击检测
+        function isClickOnH(x, y) {
+            const tp = [];
+            for (let t = 0; t < 2 * Math.PI; t += 0.1) {
+                const { x: px, y: py } = heartFunc(t, IMG_ENLARGE + 15);
+                tp.push({ x: px, y: py });
+            }
+
+            let inH = false;
+            for (let i = 0, j = tp.length - 1; i < tp.length; j = i++) {
+                const xi = tp[i].x, yi = tp[i].y;
+                const xj = tp[j].x, yj = tp[j].y;
+                if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                    inH = !inH;
+                }
+            }
+            return inH;
+        }
+
+        // 初始化
+        const stars = Array.from({ length: 1000 }, () => new Star());
+        const heart = new Heart();
+        const meteors = [new Meteor(), new Meteor()];
+        setInterval(() => {
+            const index = Math.floor(Math.random() * meteors.length);
+            meteors[index] = new Meteor();
+        }, M_INTERVAL);
+
+        // 动画循环
+        function animate() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(s => { s.update(); s.draw(); });
+            meteors.forEach(m => { m.update(); m.draw(); });
+            heart.render();
+
+            requestAnimationFrame(animate);
+        }
+
+        // 事件监听 - 严格控制步骤逻辑
+        canvas.addEventListener('click', (e) => {
+            // 根据当前状态决定是否响应点击
+            if (heart.animationState === 0) { // 只有初始状态可以点击炸开爱心
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                if (isClickOnH(x, y)) {
+                    heart.triggerFall();
+                }
+            }
+        });
+
+        pigeon.addEventListener('click', () => {
+            if (heart.animationState === 3 && !heart.r && !isTextExploded) {
+                heart.triggerTExplosion();
+            }
+        });
+
+        pText.addEventListener('click', () => {
+            if (heart.animationState === 3 && !heart.r && !isTextExploded) {
+                heart.triggerTExplosion();
+            }
+        });
+
+        document.querySelector('.back-arrow').addEventListener('click', () => {
+            // 先隐藏信封和信件内容
+            envelopeContainer.classList.remove('show');
+            // 清空信封粒子
+            envelopeParticles = [];
+
+            isTextExploded = false;
+            heart.reset();
+            heartInnerText.style.display = 'block';
+            heartInnerText.style.opacity = 1;
+        });
+
+        animate();
+    </script>
+</body>
+</html>
